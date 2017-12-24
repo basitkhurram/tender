@@ -1,0 +1,60 @@
+app_host: "0.0.0.0"
+app_port: 5000
+
+redistogo_url: "redis://localhost:6379"
+
+quorum:
+    solo:   5
+    party:  10
+
+limits:
+    yummly: 20
+    yelp:   60
+    cuisine_sample_size: 5
+    radius: 5000
+
+
+twilio:
+    account_sid: ""
+    origin_number: ""
+
+yummly:
+    app_id: ""
+
+yelp:
+    cat_json: "https://www.yelp.com/developers/documentation/v3/all_category_list/categories.json"
+    supported_locales: ['AR', 'AT', 'AU',
+                        'BE', 'BR',
+                        'CA', 'CH', 'CL', 'CZ',
+                        'DE', 'DK',
+                        'ES',
+                        'FI', 'FR',
+                        'GB', 'HK',
+                        'IE', 'IT',
+                        'JP',
+                        'MX', 'MY',
+                        'NL', 'NO', 'NZ',
+                        'PH', 'PL', 'PT',
+                        'SE', 'SG',
+                        'TR', 'TW',
+                        'US']
+    cuisine_blacklist: ["Art Galleries", "Grocery", "Wine Bars"]
+
+
+endpoints:
+    flickr:             "https://api.flickr.com/services/rest"
+    getty:              "https://api.gettyimages.com/v3/search/images"
+    places: 
+        autocomplete:   "https://maps.googleapis.com/maps/api/place/autocomplete/json"
+        details:        "https://maps.googleapis.com/maps/api/place/details/json"
+    yelp:               "https://api.yelp.com/v3/businesses/search"
+    yummly:             "http://api.yummly.com/v1/api/recipes"
+
+keys:
+    flickr: ""
+    getty:  ""
+    places: ""
+    twilio: ""
+    yelp:   ""
+    yummly: ""
+
