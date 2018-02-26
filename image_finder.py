@@ -4,75 +4,99 @@ import random
 import requests
 import yaml
 
+from threading import Thread
 
-def add_cuisine_images_to_redis(cuisine, redis, image_uris=[]):
+
+def add_cuisine_images_to_redis(cuisines, redis):
+    """
+    Spin a new thread that finds images for each cuisine for which
+    we don't have images.
+
+    Args:
+        cuisines:   A list strings of cuisines.
+        redis:      A reference to the redis server.
+    """
+    for cuisine in cuisines:
+        if not redis.hexists("cuisines", cuisine):
+            thread = Thread(target=_add_cuisine_images_to_redis,
+                            args=(cuisine, redis))
+            thread.daemon = True
+            thread.start()
+
+
+def _add_cuisine_images_to_redis(cuisine, redis):
     """
     Downloads and adds images of cuisines to redis.
 
     Args:
         cuisine:    A string representing a cuisine.
         redis:      A reference to the redis server.
-        image_uris: A reference to a list, allowing addition
-                    of images to an existing list.
     """
     term = cuisine + u" food"
-    image_uris = find_images(term, image_uris)
+    image_uris = find_images(term)
     redis.hset("cuisines", cuisine, json.dumps(image_uris))
 
 
-def get_random_cuisine_image_from_redis(cuisine, redis):
+def get_random_cuisine_image_from_redis(cuisine, redis, number=1):
     """
-    Randomly selects an image for the cuisine from redis.
+    Returns randomly selected images for the cuisine from redis.
 
     Args:
         cuisine:    A string representing a cuisine.
         redis:      A reference to the redis server.
+        number:     The number of images to return
 
     Returns:
-        A string representing a URI of an image.
+        A string representing a URI of an image if number is 1,
+        otherwise returns a list of URIs.
     """
-    images = redis.hget("cuisines", cuisine)
+    images = []
+    while not images:
+        images = redis.hget("cuisines", cuisine)
     images = json.loads(images)
-    image_uri = random.choice(images)
-    return image_uri
+    if number == 1:
+        return random.choice(images)
+    # In case there aren't enough cuisine images available,
+    # since the sample size cannot be larger than the size
+    # of the sample space.
+    number = min(len(images), number)
+    images = random.sample(images, number)
+    return images
 
 
-def find_images(term, image_uris=[]):
+def find_images(term):
     """
     Downloads and returns images for some search query.
 
     Args:
         term:       A string used for image search query.
-        image_uris: A reference to a list, allowing addition
-                    of images to an existing list.
 
     Returns:
         A list of strings representing image URIs.
     """
     # Try to find an image related to the term argument,
     # first using Yummly's API.
-    uris = yummly_images(term, image_uris)
+    uris = yummly_images(term)
     if not uris:
         # If no results from Yummly, try Flickr.
-        uris = flickr_images(term, image_uris)
+        uris = flickr_images(term)
     if not uris:
         # If still no results, try Getty.
-        uris = getty_images(term, image_uris)
+        uris = getty_images(term)
     return uris
 
 
-def yummly_images(term, image_uris=[]):
+def yummly_images(term):
     """
     Downloads and returns images for some search query.
 
     Args:
         term:       A string used for image search query.
-        image_uris: A reference to a list, allowing addition
-                    of images to an existing list.
 
     Returns:
         A list of strings representing image URIs.
     """
+    image_uris = []
     request = YUMMLY_REQUEST + term
     response = requests.get(request, headers=YUMMLY_HEADER)
     if response.status_code == 200:
@@ -86,18 +110,17 @@ def yummly_images(term, image_uris=[]):
     return image_uris
 
 
-def flickr_images(term, image_uris=[]):
+def flickr_images(term):
     """
     Downloads and returns images for some search query.
 
     Args:
         term:       A string used for image search query.
-        image_uris: A reference to a list, allowing addition
-                    of images to an existing list.
 
     Returns:
         A list of strings representing image URIs.
     """
+    image_uris = []
     request = FLICKR_REQUEST + term
     response = requests.get(request)
     if response.status_code == 200:
@@ -117,18 +140,17 @@ def flickr_images(term, image_uris=[]):
     return image_uris
 
 
-def getty_images(term, image_uris=[]):
+def getty_images(term):
     """
     Downloads and returns images for some search query.
 
     Args:
         term:       A string used for image search query.
-        image_uris: A reference to a list, allowing addition
-                    of images to an existing list.
 
     Returns:
         A list of strings representing image URIs.
     """
+    image_uris = []
     request = GETTY_REQUEST + term
     response = requests.get(request, headers=GETTY_HEADER)
     if response.status_code == 200:

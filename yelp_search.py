@@ -1,3 +1,6 @@
+
+from image_finder import add_cuisine_images_to_redis
+
 import logging
 import random
 import requests
@@ -22,18 +25,20 @@ def is_supported_place(place_id):
     return country_code in SUPPORTED_LOCALES
 
 
-def find_cuisines(location):
+def find_cuisines(location, redis=None):
     """
     Finds types of cuisines near the provided location,
     uses RADIUS to determine the search radius.
 
     Args:
         location: A string representing a location.
+        redis:    Reference to the redis server.
 
     Returns:
         A list of strings representing cuisines found
         near the provided location.
     """
+    # We want distinct cuisines, so we use a set.
     cuisines = set([])
     # This is the request to get the first page of results
     # from Yelp's API.
@@ -46,8 +51,8 @@ def find_cuisines(location):
     offset = 0
     businesses = True
     while businesses and offset < YELP_RESULTS_LIMIT:
-        request = "{0}&offset={1}".format(base_request, offset)
-        response = requests.get(request,
+        api_request = "{0}&offset={1}".format(base_request, offset)
+        response = requests.get(api_request,
                                 headers=YELP_HEADER).json()
         businesses = response["businesses"]
         for business in businesses:
@@ -56,6 +61,35 @@ def find_cuisines(location):
                 if cuisine not in CUISINE_BLACKLIST:
                     cuisines.add(category["title"])
         offset += 20
+    # Using a list speeds up sampling, also, sets aren't JSON serializable.
+    cuisines = list(cuisines)
+
+    # TODO:
+    # If we didn't find any cuisines in this area... we're in trouble.
+    # We can use pizza for now, but this will still cause issues later,
+    # like when searching for a winning eatery.
+    if len(cuisines) < CUISINE_SAMPLE_SIZE:
+        if not cuisines:
+            cuisines = ["pizza"]
+    else:
+        cuisines = random.sample(cuisines, CUISINE_SAMPLE_SIZE)
+
+    if redis:
+        # Find and then add to redis images of the sampled cuisines.
+        add_cuisine_images_to_redis(cuisines, redis)
+
+        # Potential savings: we can check redis to see if we already have
+        # images for one of the sampled cuisines. If we do, we'll move that
+        # cuisine to the start of our list, and then send images for this
+        # "first cuisine" right at the start.
+        idx = 0
+        found_cuisine_in_redis = False
+        while not found_cuisine_in_redis and idx < len(cuisines):
+            cuisine = cuisines[idx]
+            if redis.hexists("cuisines", cuisine):
+                cuisines[idx], cuisines[0] = cuisines[0], cuisines[idx]
+                found_cuisine_in_redis = True
+            idx += 1
     return cuisines
 
 
@@ -141,6 +175,9 @@ else:
 
     # Set the search radius within which to search for cuisines and eateries.
     RADIUS = config["limits"]["radius"]
+
+    # Set a limit on the number of cuisines we'll sample
+    CUISINE_SAMPLE_SIZE = config["limits"]["cuisine_sample_size"]
 
     # Limit the number of results we want Yelp to send us when we use the API.
     YELP_RESULTS_LIMIT = config["limits"]["yelp"]

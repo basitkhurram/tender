@@ -131,8 +131,10 @@ def send_winner(winner, eatery, sender, from_, redis, party=None):
         response = u"Looks like you might want {0} cuisine.".format(winner)
     client.messages.create(to=sender, from_=from_, body=response)
     name = eatery["name"]
-    image = eatery["image_url"]
+    image = eatery["image_url"] if eatery["image_url"] else None
     response = "How about {0}?".format(name)
+    logging.info(image)
+    logging.info(eatery)
     client.messages.create(to=sender, from_=from_, body=response,
                            media_url=[image])
     redis.hdel("users", sender)
