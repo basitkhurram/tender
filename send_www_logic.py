@@ -5,6 +5,7 @@ from image_finder import get_random_cuisine_image_from_redis as get_images
 from yelp_search import find_cuisines, find_eatery
 from winner_logic import pick_solo_winner
 
+import base64
 import json
 import random
 
@@ -75,7 +76,7 @@ def send_solo_winner_to_www():
     # Pull the encoded scores from the GET request.
     scores = request.args.get("scores")
     # Decode and then load the scores.
-    scores = scores.decode("base64")
+    scores = base64.b64decode(scores)
     scores = json.loads(scores)
     # Compute the winning cuisine.
     winning_cuisine = pick_solo_winner(scores)
