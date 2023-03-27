@@ -2,6 +2,7 @@
 from image_finder import add_cuisine_images_to_redis
 
 import logging
+import os
 import random
 import requests
 import yaml
@@ -166,7 +167,7 @@ except Exception as error:
     logging.error("Something wrong with the config file, " + str(error))
 
 else:
-    YELP_KEY = config["keys"]["yelp"]
+    YELP_KEY = os.environ.get("YELP_KEY")
     YELP_HEADER = {"Authorization": "Bearer " + YELP_KEY}
     YELP_ENDPOINT = config["endpoints"]["yelp"]
 

@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import yaml
 
 from twilio.rest import Client
@@ -19,7 +20,8 @@ def invalid_option_start_over(sender, from_, redis):
     """
     response = "Invalid option. Please start again."
     client.messages.create(to=sender, from_=from_, body=response)
-    redis.hdel("users", sender)
+    if redis:
+        redis.hdel("users", sender)
 
 
 def send_similar_locations(sender_history, locations, sender, from_, redis):
@@ -46,7 +48,8 @@ def send_similar_locations(sender_history, locations, sender, from_, redis):
     sender_history["ambiguousLocations"] = locations
     sender_history["previous"] = "disambiguateLocations"
     sender_history = json.dumps(sender_history)
-    redis.hset("users", sender, sender_history)
+    if redis:
+        redis.hset("users", sender, sender_history)
 
 
 def send_unsupported_country(sender, from_, redis):
@@ -61,7 +64,8 @@ def send_unsupported_country(sender, from_, redis):
     """
     response = "Sorry, this location is currently not supported."
     client.messages.create(to=sender, from_=from_, body=response)
-    redis.hdel("users", sender)
+    if redis:
+        redis.hdel("users", sender)
 
 
 def send_first_cuisine(sender_history, sender, from_, redis):
@@ -85,12 +89,14 @@ def send_first_cuisine(sender_history, sender, from_, redis):
         party_name = sender_history["partyName"]
         # Using a redis sorted set will allow us to atomically increment
         # the counter for the number of images sent to a party.
-        redis.zincrby("parties:images_sent", party_name)
+        if redis:
+            redis.zincrby("parties:images_sent", party_name)
     else:
         sender_history["scores"] = {first_cuisine: 0}
 
     sender_history = json.dumps(sender_history)
-    redis.hset("users", sender, sender_history)
+    if redis:
+        redis.hset("users", sender, sender_history)
 
 
 def send_one_cuisine_image(to, from_, cuisine, redis):
@@ -137,7 +143,8 @@ def send_winner(winner, eatery, sender, from_, redis, party=None):
     logging.info(eatery)
     client.messages.create(to=sender, from_=from_, body=response,
                            media_url=[image])
-    redis.hdel("users", sender)
+    if redis:
+        redis.hdel("users", sender)
 
 
 try:
@@ -148,7 +155,7 @@ except Exception as error:
     logging.error("Something wrong with the config file, " + str(error))
 
 else:
-    from_ = config["twilio"]["origin_number"]
-    account_sid = config["twilio"]["account_sid"]
-    auth_token = config["keys"]["twilio"]
+    from_ = os.environ.get("TWILIO_ORIGIN_NUMBER")
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    auth_token = os.environ.get("TWILIO_KEY")
     client = Client(account_sid, auth_token)

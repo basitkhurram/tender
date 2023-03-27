@@ -53,19 +53,34 @@ if __name__ == "__main__":
         SOLO_QUORUM = config["quorum"]["solo"]
         PARTY_QUORUM = config["quorum"]["party"]
 
-        REDIS_HOST = config["redis"]["host_url"]
-        REDIS_PORT = config["redis"]["port"]
-        REDIS_PASSWORD = config["keys"]["redis"]
-        redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
-        app.config["redis"] = redis
+        REDIS_HOST = os.environ.get("REDIS_HOST_URL")
+        REDIS_PORT = os.environ.get("REDIS_HOST_PORT")
+        try:
+            redis_instance = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+            redis_instance.ping()
+        except Exception as exception:
+            print(exception)
+            print("Could not connect to redis instance at: {}:{}".format(REDIS_HOST, REDIS_PORT))
+            try:
+                print("Trying to connect to 127.0.0.1 at port 6379")
+                redis_instance = redis.Redis(host="127.0.0.1", port=6379)
+                redis_instance.ping()
+                print("Able to connect to Redis instance at 127.0.0.1:6379")
+            except Exception as exception:
+                print(exception)
+                print("Couldn't connect to local Redis instance either. Redis functionality will be disabled.")
+                redis_instance = None
+        finally:
+            app.config["redis"] = redis_instance
 
-        # These are some text files that contain the strings
-        # that help generate a ''' random ''' party name.
-        with open("adjectives.txt") as adjectives:
-            adjectives = adjectives.readlines()
-            redis.sadd("adjectives", *adjectives)
-        with open("food_names.txt") as food_names:
-            food_names = food_names.readlines()
-            redis.sadd("foodnames", *food_names)
+        if redis_instance:
+            # These are some text files that contain the strings
+            # that help generate a ''' random ''' party name.
+            with open("adjectives.txt") as adjectives:
+                adjectives = adjectives.readlines()
+                redis_instance.sadd("adjectives", *adjectives)
+            with open("food_names.txt") as food_names:
+                food_names = food_names.readlines()
+                redis_instance.sadd("foodnames", *food_names)
 
         app.run(host=APP_HOST, port=APP_PORT)

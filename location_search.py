@@ -3,6 +3,7 @@ from flask_cors import cross_origin
 
 import json
 import logging
+import os
 import requests
 import yaml
 
@@ -96,7 +97,7 @@ except Exception as error:
     logging.error("Something wrong with the config file, " + str(error))
 
 else:
-    PLACES_KEY = config["keys"]["places"]
+    PLACES_KEY = os.environ.get("PLACES_KEY")
     AUTOCOMPLETE_ENDPOINT = config["endpoints"]["places"]["autocomplete"]
     PLACES_AUTOCOMPLETE_REQUEST = "".join([AUTOCOMPLETE_ENDPOINT,
                                            "?key=", PLACES_KEY,

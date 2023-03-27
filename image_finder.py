@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import random
 import requests
 import yaml
@@ -16,6 +17,9 @@ def add_cuisine_images_to_redis(cuisines, redis):
         cuisines:   A list strings of cuisines.
         redis:      A reference to the redis server.
     """
+    if not redis:
+        print("No Redis instance. Not adding images to Redis")
+        return
     for cuisine in cuisines:
         if not redis.hexists("cuisines", cuisine):
             thread = Thread(target=_add_cuisine_images_to_redis,
@@ -50,6 +54,9 @@ def get_random_cuisine_image_from_redis(cuisine, redis, number=1):
         A string representing a URI of an image if number is 1,
         otherwise returns a list of URIs.
     """
+    if not redis:
+        print("No Redis instance. Returning empty list of images")
+        return []
     images = []
     while not images:
         images = redis.hget("cuisines", cuisine)
@@ -179,7 +186,7 @@ else:
                              "&sort_order=best",
                              "&phrase="])
 
-    FLICKR_KEY = config["keys"]["flickr"]
+    FLICKR_KEY = os.environ.get("FLICKR_KEY")
     FLICKR_ENDPOINT = config["endpoints"]["flickr"]
     FLICKR_REQUEST = "".join([FLICKR_ENDPOINT,
                              "?method=flickr.photos.search",
