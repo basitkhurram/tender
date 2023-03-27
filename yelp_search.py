@@ -105,7 +105,7 @@ def get_updated_cat_map(yelp_cat_map):
         A mapping of Yelp's category codes to their semantic meanings
         (For example, as of writing, "diyfood" maps to "Do-It-Yourself Food").
     """
-    raw_mapping = requests.get(yelp_cat_map).json()
+    raw_mapping = requests.get(yelp_cat_map, headers=YELP_HEADER).json()["categories"]
     updated_mapping = {}
     for category in raw_mapping:
         alias = category["alias"]
@@ -160,12 +160,16 @@ def find_eatery(cuisine, location):
 
 try:
     with open("config", "r") as stream:
-        config = yaml.load(stream)
+        config = yaml.safe_load(stream)
 
 except Exception as error:
     logging.error("Something wrong with the config file, " + str(error))
 
 else:
+    YELP_KEY = config["keys"]["yelp"]
+    YELP_HEADER = {"Authorization": "Bearer " + YELP_KEY}
+    YELP_ENDPOINT = config["endpoints"]["yelp"]
+
     # Maintain a list of some cuisines that make it difficult to find
     # good, relevant images.
     CUISINE_BLACKLIST = set(config["yelp"]["cuisine_blacklist"])
@@ -185,8 +189,3 @@ else:
     # The URL to the JSON file containing Yelp's categories mapping.
     YELP_CAT_JSON = config["yelp"]["cat_json"]
     YELP_CAT_MAP = get_updated_cat_map(YELP_CAT_JSON)  # Store this on redis?
-
-    YELP_KEY = config["keys"]["yelp"]
-    YELP_HEADER = {"Authorization": "Bearer " + YELP_KEY}
-
-    YELP_ENDPOINT = config["endpoints"]["yelp"]

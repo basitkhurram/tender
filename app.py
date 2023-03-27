@@ -37,7 +37,7 @@ app.register_blueprint(send_solo_winner_to_www_blueprint)
 if __name__ == "__main__":
     try:
         with open("config", "r") as stream:
-            config = yaml.load(stream)
+            config = yaml.safe_load(stream)
 
     except Exception as error:
         logging.error("Something wrong with the config file, " + str(error))
@@ -53,8 +53,10 @@ if __name__ == "__main__":
         SOLO_QUORUM = config["quorum"]["solo"]
         PARTY_QUORUM = config["quorum"]["party"]
 
-        REDIS_URL = os.getenv("REDISTOGO_URL", config["redistogo_url"])
-        redis = redis.from_url(REDIS_URL)
+        REDIS_HOST = config["redis"]["host_url"]
+        REDIS_PORT = config["redis"]["port"]
+        REDIS_PASSWORD = config["keys"]["redis"]
+        redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
         app.config["redis"] = redis
 
         # These are some text files that contain the strings

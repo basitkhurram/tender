@@ -20,7 +20,7 @@ from yelp_search import find_cuisines, is_supported_place, find_eatery
 
 try:
     with open("config", "r") as stream:
-        config = yaml.load(stream)
+        config = yaml.safe_load(stream)
 
 except Exception as error:
     logging.error("Something wrong with the config file, " + str(error))

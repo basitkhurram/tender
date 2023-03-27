@@ -142,7 +142,7 @@ def send_winner(winner, eatery, sender, from_, redis, party=None):
 
 try:
     with open("config", "r") as stream:
-        config = yaml.load(stream)
+        config = yaml.safe_load(stream)
 
 except Exception as error:
     logging.error("Something wrong with the config file, " + str(error))

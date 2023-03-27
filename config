@@ -1,7 +1,9 @@
 app_host: "0.0.0.0"
 app_port: 5000
 
-redistogo_url: "redis://localhost:6379"
+redis:
+    host_url: ""
+    port: 0
 
 quorum:
     solo:   5
@@ -22,7 +24,7 @@ yummly:
     app_id: ""
 
 yelp:
-    cat_json: "https://www.yelp.com/developers/documentation/v3/all_category_list/categories.json"
+    cat_json: "https://api.yelp.com/v3/categories"
     supported_locales: ['AR', 'AT', 'AU',
                         'BE', 'BR',
                         'CA', 'CH', 'CL', 'CZ',
@@ -54,6 +56,7 @@ keys:
     flickr: ""
     getty:  ""
     places: ""
+    redis:  ""
     twilio: ""
     yelp:   ""
     yummly: ""
